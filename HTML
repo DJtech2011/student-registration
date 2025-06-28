@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Student Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #eef3fb;
+        padding: 20px;
+        max-width: 500px;
+        margin: auto;
+      }
+      .box {
+        background: white;
+        padding: 24px;
+        border-radius: 10px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #0047ab;
+        text-align: center;
+      }
+      input, button {
+        width: 100%;
+        padding: 12px;
+        margin: 12px 0;
+        font-size: 16px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+      button {
+        background-color: #0047ab;
+        color: white;
+        font-weight: bold;
+        border: none;
+      }
+      button:hover {
+        background-color: #005de6;
+      }
+      .hidden { display: none; }
+      .info { margin: 10px 0; font-size: 16px; }
+      .info b { color: #0047ab; width: 100px; display: inline-block; }
+      #thank-you { text-align: center; font-size: 18px; color: green; }
+      #error { color: red; margin: 10px 0; }
+    </style>
+  </head>
+
+  <body>
+    <div class="box">
+      <h2>Student Registration</h2>
+
+      <!-- Step 1: Enter Code -->
+      <div id="step1">
+        <input type="text" id="studentCode" placeholder="Enter Student Code" />
+        <button onclick="fetchDetails()">Check</button>
+        <div id="error"></div>
+      </div>
+
+      <!-- Step 2: Show Details + Mobile Input -->
+      <div id="step2" class="hidden">
+        <div class="info"><b>Name:</b> <span id="name"></span></div>
+        <div class="info"><b>Class:</b> <span id="class"></span></div>
+        <input type="text" id="mobile" placeholder="Enter Mobile Number" maxlength="10" />
+        <button onclick="submitForm()">Register</button>
+      </div>
+
+      <!-- Step 3: Thank You -->
+      <div id="thank-you" class="hidden">
+        ✅ Thank you for registering!<br><br>
+        For more queries, mail to <a href="mailto:aaryan@divyajyotschool.org">aaryan@divyajyotschool.org</a>
+      </div>
+    </div>
+
+    <script>
+      const SHEETBEST_URL = "https://api.sheetbest.com/sheets/c47fc12b-42e8-4fd8-a9cf-ac143cc403da";
+
+      let studentInfo = null;
+
+      async function fetchDetails() {
+        const code = document.getElementById("studentCode").value.trim();
+        document.getElementById("error").innerText = "";
+        document.getElementById("step2").classList.add("hidden");
+        document.getElementById("thank-you").classList.add("hidden");
+
+        if (!code) {
+          document.getElementById("error").innerText = "❗ Please enter a student code.";
+          return;
+        }
+
+        try {
+          const res = await fetch(`${SHEETBEST_URL}?Student Code=${encodeURIComponent(code)}`);
+          const data = await res.json();
+
+          if (data.length === 0) {
+            document.getElementById("error").innerText = "❌ Student not found.";
+            return;
+          }
+
+          studentInfo = data[0];
+          document.getElementById("name").innerText = studentInfo.Name;
+          document.getElementById("class").innerText = studentInfo.Class;
+          document.getElementById("step2").classList.remove("hidden");
+        } catch (err) {
+          document.getElementById("error").innerText = "⚠️ Error connecting to Google Sheet.";
+        }
+      }
+
+      async function submitForm() {
+        const mobile = document.getElementById("mobile").value.trim();
+
+        if (!/^\d{10}$/.test(mobile)) {
+          alert("❗ Please enter a valid 10-digit mobile number.");
+          return;
+        }
+
+        const payload = {
+          "Student Code": studentInfo["Student Code"],
+          "Name": studentInfo["Name"],
+          "Class": studentInfo["Class"],
+          "Mobile": mobile
+        };
+
+        try {
+          const res = await fetch(SHEETBEST_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            document.getElementById("step1").classList.add("hidden");
+            document.getElementById("step2").classList.add("hidden");
+            document.getElementById("thank-you").classList.remove("hidden");
+          } else {
+            alert("❌ Failed to register. Try again.");
+          }
+        } catch (err) {
+          alert("⚠️ Could not connect to SheetBest.");
+        }
+      }
+    </script>
+  </body>
+</html>
